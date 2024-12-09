@@ -1,67 +1,73 @@
-const express = require("express");
-const { v4: uuidV4 } = require("uuid")
+const dotEnv = require("dotenv");
+dotEnv.config();
+
+const express = require("express")
+const cors = require("cors")
+const UserModal = require("./models/user.model");
+const connectToDataBase = require("./modules/database/conect");
 
 const app = express();
+connectToDataBase();
+
 app.use(express.json());
+app.use(cors());
 
-const customers = [];
-
-function veryfyExistsAccountCpf (req, res, next) {
-    const { cpf } = req.headers;
-
-    const customer = customers.find(customer => customer.cpf === cpf);
-
-    if(!customer) {
-        return res.status(400).json({ error: "Customer not found"  })
-    };
-
-    req.customer = customer;
-
-    return next();    
-}
-
-app.post("/account", (req, res) => {
-    const { name, cpf } = req.body;
-
-    const customersAlreadyExists = customers.some(
-        (customer) => customer.cpf === cpf
-    );
-
-    if(customersAlreadyExists) {
-        return res.status(400).json({ error: "Customer already exists!" })
-    } 
-
-    customers.push({
-        cpf,
-        name,
-        id: uuidV4(),
-        statement: []
-    });
-
-    return res.status(201).json({ mensage: "Sucsses" })
-});
-
-app.get("/statement", veryfyExistsAccountCpf, (req, res) => {
-    const { customer } = req;
-    return res.json( customer.statement );
-});
-
-app.post("/deposit", veryfyExistsAccountCpf ,(req, res) => {
-    const {description, amount} = req.body;
-
-    const { customer } = req;
-    
-
-    const statementOperation = {
-        description,
-        amount,
-        created_at: new Date(),
-        type: "credit"
+app.get("/users", async (req, res) => {
+    try{
+        const user = await UserModal.find({});
+        return res.status(200).json(user)
     }
-
-    customer.statement.push(statementOperation);
-
-    return res.status(201).json({ sucsses: "Sucesso ao inserir" })
+    catch(error) {
+        return res.status(400).send(error.mensage)
+    }
 })
 
-app.listen(3333, () => console.log("http://localhost:3333"));
+app.get("/users/:id", async (req, res) => {
+    try{
+        const id  = req.params.id;
+        const user = await UserModal.findById(id);
+        return res.status(200).json(user)
+    }
+    catch(error) {
+        return res.status(400).send(error.mensage)
+    }
+})
+
+app.post("/users", async (req, res) => {
+    try{
+        const user = await UserModal.create(req.body);
+        return res.status(200).json(user)
+    }
+    catch(error) {
+        console.log("Deu ruim", error)
+        return res.status(400).send(error.mensage)
+    }
+})
+
+app.patch("/users/:id", async (req, res) => {
+    try{
+        const id  = req.params.id;
+        const user = await UserModal.findByIdAndUpdate(id, req.body, { new: true });
+
+        return res.status(200).json(user)
+    }
+    catch(error) {
+        return res.status(400).send(error.mensage)
+    }
+})
+
+app.delete("/users/:id", async (req, res) => {
+    try{
+        const id  = req.params.id;
+        const user = await UserModal.findByIdAndDelete(id);
+
+        return res.status(200).json(user)
+    }
+    catch(error) {
+        return res.status(400).send(error.mensage)
+    }
+})
+
+app.listen(3333, () => {
+    console.log("Rodando na port: http://localhost:3333")
+});
