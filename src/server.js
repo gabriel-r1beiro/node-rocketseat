@@ -5,6 +5,7 @@ const express = require("express")
 const cors = require("cors")
 const UserModal = require("./models/user.model");
 const connectToDataBase = require("./modules/database/conect");
+import middleware from "./middlewares/middleware"
 
 const app = express();
 connectToDataBase();
@@ -12,7 +13,7 @@ connectToDataBase();
 app.use(express.json());
 app.use(cors());
 
-app.get("/users", async (req, res) => {
+app.get("/users", middleware,async (req, res) => {
     try{
         const user = await UserModal.find({});
         return res.status(200).json(user)
